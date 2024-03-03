@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:alpine
+    restart: on-failure
+    environment:
+      POSTGRES_PASSWORD: postgres
+  redis:
+    image: redis:alpine
+  nginx:
+    depends_on:
+      - api
+      - client
+    restart: always
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3050:80"
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    volumes:
+      - '/usr/src/app/node_modules'
+      - './server:/usr/src/app'
+    environment:
+      - REDIS_HOST=redis 
+      - REDIS_PORT=6379
+      - PG_USER=postgres
+      - PG_HOST=postgres
+      - PG_DATABASE=postgres
+      - PG_PASSWORD=postgres
+      - PG_PORT=5432
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    volumes:
+      - /usr/src/app/node_modules
+      - ./client:/usr/src/app
+    environment:
+      - WDS_SOCKET_PORT=0
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile.dev
+    volumes:
+      - /usr/src/app/node_modules
+      - ./worker:/usr/src/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
